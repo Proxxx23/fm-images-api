@@ -13,8 +13,8 @@ import * as path from 'path';
 const DEFAULT_IMAGES_FETCH_LIMIT = 100;
 
 const todayDate = formatISO9075(new Date(), { representation: 'date' });
-const STORAGE_IMG_DIR_PATH = 'storage/images'; // todo: env?
-const STORAGE_ABS_IMG_DIR_PATH = `${__dirname}/../../${STORAGE_IMG_DIR_PATH}/${todayDate}`;
+const STORAGE_IMG_DIR_PATH = `storage/images/${todayDate}`; // todo: env?
+const STORAGE_ABS_IMG_DIR_PATH = `${__dirname}/../../${STORAGE_IMG_DIR_PATH}`;
 
 @Injectable()
 export class ImagesService {
@@ -57,8 +57,9 @@ export class ImagesService {
         const imageSavePath = `${STORAGE_ABS_IMG_DIR_PATH}/${fileName}`;
 
         const processedImage = await sharp(uploadedFile.buffer);
-        if (dto.imageShouldBeResized()) {
-            await processedImage.resize(dto.width, dto.height);
+        // fixme: supertest sets these values as strings...
+        if (+dto.width > 0 && +dto.height > 0) {
+            await processedImage.resize(+dto.width, +dto.height);
         }
 
         const metadata = await processedImage.toFile(imageSavePath);

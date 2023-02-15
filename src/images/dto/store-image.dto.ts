@@ -1,7 +1,6 @@
 import {IsNotEmpty, IsOptional, IsString, Min, Max, MaxLength, IsNumber} from 'class-validator';
 import { Type } from 'class-transformer';
-import {ApiProperty} from '@nestjs/swagger';
-import {Optional} from '@nestjs/common';
+import {ApiProperty, ApiPropertyOptional} from '@nestjs/swagger';
 
 export class StoreImageDto {
     @ApiProperty()
@@ -10,7 +9,7 @@ export class StoreImageDto {
     @MaxLength(255)
     readonly title: string;
 
-    @ApiProperty()
+    @ApiPropertyOptional()
     @IsNumber()
     @IsOptional()
     @Type(() => Number)
@@ -18,7 +17,7 @@ export class StoreImageDto {
     @Max(10000)
     readonly width?: number;
 
-    @ApiProperty()
+    @ApiPropertyOptional()
     @IsNumber()
     @IsOptional()
     @Type(() => Number)
@@ -32,7 +31,9 @@ export class StoreImageDto {
         this.height = height;
     }
 
-    public imageShouldBeResized(): boolean {
-        return this.width > 0 && this.height > 0;
-    }
+    // fixme: this causes error in tests as it's not visible on test execution context
+    // fixme: results in "TypeError: dto.imageShouldBeResized is not a function" error on test running
+    // public imageShouldBeResized(): boolean {
+    //     return this.width > 0 && this.height > 0;
+    // }
 }

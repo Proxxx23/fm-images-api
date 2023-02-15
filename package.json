@@ -8,11 +8,11 @@
    "scripts": {
       "prebuild": "rimraf dist",
       "build": "nest build",
-      "start": "NODE_ENV=test ts-node src/main.ts",
-      "start:dev": "NODE_ENV=test nest start --watch",
-      "start:prod": "NODE_ENV=production nest build && node dist/main",
-      "test": "NODE_ENV=test jest",
-      "test:watch": "NODE_ENV=test jest --watch"
+      "start": "ts-node src/main.ts",
+      "start:dev": "nest start --watch",
+      "start:prod": "nest build && node dist/main",
+      "test": "jest",
+      "test:watch": "jest --watch"
    },
    "dependencies": {
       "@nestjs/common": "^9.0.0",
