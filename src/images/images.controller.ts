@@ -58,7 +58,7 @@ export class ImagesController {
         id: number,
     ): Promise<Response<ImageDto>> {
         const image = await this.imagesService.fetch(id);
-        if (!image) {
+        if (!(image instanceof ImageDto)) {
             throw new NotFoundException('Could not find image with given id.');
         }
 

@@ -45,7 +45,7 @@ export class ImagesService {
     async fetch(id: number): Promise<ImageDto | undefined> {
         const entity = await this.imagesRepository.findOneBy({ id });
 
-        return entity
+        return entity instanceof Image
             ? ImageDto.fromEntity(entity)
             : undefined;
     }
