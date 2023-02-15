@@ -4,8 +4,7 @@ import {
     Get,
     HttpCode,
     HttpStatus,
-    InternalServerErrorException,
-    MaxFileSizeValidator,
+    MaxFileSizeValidator, NotFoundException,
     Param,
     ParseFilePipe,
     ParseIntPipe,
@@ -15,14 +14,15 @@ import {
     UseInterceptors,
 } from '@nestjs/common';
 import {ImagesService} from './images.service';
-import {ApiBadRequestResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags} from '@nestjs/swagger';
+import {ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags} from '@nestjs/swagger';
 import {StoreImageDto} from './dto/store-image.dto';
 import {FileInterceptor} from '@nestjs/platform-express';
 import {ImageDto} from './dto/image.dto';
 import {ImagesQueryDto} from './dto/images.query.dto';
 import {ApiImplicitFile} from '@nestjs/swagger/dist/decorators/api-implicit-file.decorator';
 
-const MAX_IMAGE_SIZE_KB = 5096;
+const MAX_IMAGE_SIZE_KB = 5096 * 1024;
+const ALLOWED_IMAGE_EXTENSIONS = 'jpeg|jpg|gif|bmp|tiff|png|webp';
 
 type Response<T extends object> = {
     data: T | [],
@@ -35,15 +35,11 @@ export class ImagesController {
 
     @Get('/')
     @ApiOperation({ summary: 'Fetch all the images' })
-    @ApiOkResponse(
-        {
-            isArray: true,
-            type: ImageDto,
-        },
-    )
-    @ApiBadRequestResponse({
-        description: 'Title should be a string with more than 1 character.',
+    @ApiOkResponse({
+        isArray: true,
+        type: ImageDto,
     })
+    @ApiBadRequestResponse({ description: 'Title should be a string with more than 1 character.' })
     @HttpCode(HttpStatus.OK)
     async index(@Query() query: ImagesQueryDto): Promise<Response<ImageDto[]>> {
         return {
@@ -53,32 +49,29 @@ export class ImagesController {
 
     @Get('/:id')
     @ApiOperation({ summary: 'Fetch image by the id' })
-    @ApiOkResponse(
-        {
-            type: ImageDto,
-        },
-    )
-    @ApiBadRequestResponse({
-        description: 'Invalid id format/type passed.',
-    })
+    @ApiOkResponse({ type: ImageDto })
+    @ApiBadRequestResponse({ description: 'Invalid id format/type passed.' })
+    @ApiNotFoundResponse({ description: 'Image with given ID could not be found.' })
     @HttpCode(HttpStatus.OK)
     async show(
         @Param('id', new ParseIntPipe({ errorHttpStatusCode: HttpStatus.BAD_REQUEST }))
         id: number,
     ): Promise<Response<ImageDto>> {
+        const image = await this.imagesService.fetch(id);
+        if (!image) {
+            throw new NotFoundException('Could not find image with given id.');
+        }
+
         return {
-            data: await this.imagesService.fetch(id),
+            data: image,
         };
     }
 
     @Post('/')
     @ApiOperation({ summary: 'Upload and store image data' })
     @ApiImplicitFile({ name: 'image', required: true, description: 'Uploaded image' })
-    @ApiOkResponse(
-        {
-            type: ImageDto,
-        },
-    )
+    @ApiOkResponse({ type: ImageDto })
+    @ApiInternalServerErrorResponse()
     @HttpCode(HttpStatus.CREATED)
     @UseInterceptors(FileInterceptor('image'))
     async store(
@@ -87,20 +80,13 @@ export class ImagesController {
             {
                 validators: [
                     new MaxFileSizeValidator({ maxSize: MAX_IMAGE_SIZE_KB }),
-                    new FileTypeValidator({ fileType: new RegExp('jpeg|jpg|gif|bmp|tiff|png') }),
+                    new FileTypeValidator({ fileType: new RegExp(ALLOWED_IMAGE_EXTENSIONS) }),
                 ],
             },
         )) file: Express.Multer.File,
     ): Promise<Response<ImageDto>> {
-        let entity;
-        try {
-            entity = await this.imagesService.store(dto, file); // todo: check if throws 500
-        } catch (e) {
-            throw new InternalServerErrorException('Internal Server Error.');
-        }
-
         return {
-            data: entity,
+            data: await this.imagesService.store(dto, file),
         };
     }
 }

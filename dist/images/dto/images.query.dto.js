@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ImagesQueryDto = void 0;
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
+const class_transformer_1 = require("class-transformer");
 class ImagesQueryDto {
 }
 __decorate([
@@ -23,12 +24,14 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", Number)
 ], ImagesQueryDto.prototype, "page", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", Number)
 ], ImagesQueryDto.prototype, "limit", void 0);

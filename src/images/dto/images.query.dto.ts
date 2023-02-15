@@ -1,5 +1,6 @@
 import {IsNumber, IsOptional, IsString} from 'class-validator';
 import {ApiProperty} from '@nestjs/swagger';
+import {Type} from 'class-transformer';
 
 export class ImagesQueryDto {
     @IsString()
@@ -9,11 +10,13 @@ export class ImagesQueryDto {
 
     @IsNumber()
     @IsOptional()
+    @Type(() => Number)
     @ApiProperty()
     readonly page?: number;
 
     @IsNumber()
     @IsOptional()
+    @Type(() => Number)
     @ApiProperty()
     readonly limit?: number;
 }

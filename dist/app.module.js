@@ -22,6 +22,7 @@ AppModule = __decorate([
                 type: 'sqlite',
                 database: 'db/images.sqlite',
                 logging: false,
+                synchronize: true,
                 entities: [image_1.Image],
             }),
         ],

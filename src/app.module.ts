@@ -11,6 +11,7 @@ import { ImagesModule } from './images/images.module';
             type: 'sqlite',
             database: 'db/images.sqlite',
             logging: false,
+            synchronize: true, // should not be used in prod env, used to migrate
             entities: [Image],
         }),
     ],

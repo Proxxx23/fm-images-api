@@ -11,11 +11,11 @@ export class Image {
     @Column('text')
     title: string;
 
-    @Column('integer')
-    width: number;
+    @Column('integer', { nullable: true })
+    width?: number;
 
-    @Column('integer')
-    height: number;
+    @Column('integer', { nullable: true })
+    height?: number;
 
     @CreateDateColumn()
     createdAt: string;

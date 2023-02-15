@@ -11,10 +11,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StoreImageDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 const swagger_1 = require("@nestjs/swagger");
 class StoreImageDto {
-    constructor(title) {
+    constructor(title, width, height) {
         this.title = title;
+        this.width = width;
+        this.height = height;
+    }
+    imageShouldBeResized() {
+        return this.width > 0 && this.height > 0;
     }
 }
 __decorate([
@@ -24,5 +30,23 @@ __decorate([
     (0, class_validator_1.MaxLength)(255),
     __metadata("design:type", String)
 ], StoreImageDto.prototype, "title", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(10000),
+    __metadata("design:type", Number)
+], StoreImageDto.prototype, "width", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(10000),
+    __metadata("design:type", Number)
+], StoreImageDto.prototype, "height", void 0);
 exports.StoreImageDto = StoreImageDto;
 //# sourceMappingURL=store-image.dto.js.map

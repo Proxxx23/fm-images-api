@@ -21,7 +21,8 @@ const platform_express_1 = require("@nestjs/platform-express");
 const image_dto_1 = require("./dto/image.dto");
 const images_query_dto_1 = require("./dto/images.query.dto");
 const api_implicit_file_decorator_1 = require("@nestjs/swagger/dist/decorators/api-implicit-file.decorator");
-const MAX_IMAGE_SIZE_KB = 5096;
+const MAX_IMAGE_SIZE_KB = 5096 * 1024;
+const ALLOWED_IMAGE_EXTENSIONS = 'jpeg|jpg|gif|bmp|tiff|png|webp';
 let ImagesController = class ImagesController {
     constructor(imagesService) {
         this.imagesService = imagesService;
@@ -32,20 +33,17 @@ let ImagesController = class ImagesController {
         };
     }
     async show(id) {
+        const image = await this.imagesService.fetch(id);
+        if (!image) {
+            throw new common_1.NotFoundException('Could not find image with given id.');
+        }
         return {
-            data: await this.imagesService.fetch(id),
+            data: image,
         };
     }
     async store(dto, file) {
-        let entity;
-        try {
-            entity = await this.imagesService.store(dto, file);
-        }
-        catch (e) {
-            throw new common_1.InternalServerErrorException('Internal Server Error.');
-        }
         return {
-            data: entity,
+            data: await this.imagesService.store(dto, file),
         };
     }
 };
@@ -56,9 +54,7 @@ __decorate([
         isArray: true,
         type: image_dto_1.ImageDto,
     }),
-    (0, swagger_1.ApiBadRequestResponse)({
-        description: 'Title should be a string with more than 1 character.',
-    }),
+    (0, swagger_1.ApiBadRequestResponse)({ description: 'Title should be a string with more than 1 character.' }),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
@@ -68,12 +64,9 @@ __decorate([
 __decorate([
     (0, common_1.Get)('/:id'),
     (0, swagger_1.ApiOperation)({ summary: 'Fetch image by the id' }),
-    (0, swagger_1.ApiOkResponse)({
-        type: image_dto_1.ImageDto,
-    }),
-    (0, swagger_1.ApiBadRequestResponse)({
-        description: 'Invalid id format/type passed.',
-    }),
+    (0, swagger_1.ApiOkResponse)({ type: image_dto_1.ImageDto }),
+    (0, swagger_1.ApiBadRequestResponse)({ description: 'Invalid id format/type passed.' }),
+    (0, swagger_1.ApiNotFoundResponse)({ description: 'Image with given ID could not be found.' }),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Param)('id', new common_1.ParseIntPipe({ errorHttpStatusCode: common_1.HttpStatus.BAD_REQUEST }))),
     __metadata("design:type", Function),
@@ -84,16 +77,15 @@ __decorate([
     (0, common_1.Post)('/'),
     (0, swagger_1.ApiOperation)({ summary: 'Upload and store image data' }),
     (0, api_implicit_file_decorator_1.ApiImplicitFile)({ name: 'image', required: true, description: 'Uploaded image' }),
-    (0, swagger_1.ApiOkResponse)({
-        type: image_dto_1.ImageDto,
-    }),
+    (0, swagger_1.ApiOkResponse)({ type: image_dto_1.ImageDto }),
+    (0, swagger_1.ApiInternalServerErrorResponse)(),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image')),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.UploadedFile)(new common_1.ParseFilePipe({
         validators: [
             new common_1.MaxFileSizeValidator({ maxSize: MAX_IMAGE_SIZE_KB }),
-            new common_1.FileTypeValidator({ fileType: new RegExp('jpeg|jpg|gif|bmp|tiff|png') }),
+            new common_1.FileTypeValidator({ fileType: new RegExp(ALLOWED_IMAGE_EXTENSIONS) }),
         ],
     }))),
     __metadata("design:type", Function),

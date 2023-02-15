@@ -1,14 +1,20 @@
 import {Injectable} from '@nestjs/common';
-import {Repository} from 'typeorm';
+import {Like, Repository} from 'typeorm';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Image} from './entity/image';
 import {ImageDto} from './dto/image.dto';
+import {StoreImageDto} from './dto/store-image.dto';
+import sharp from 'sharp';
+import fse from 'fs-extra';
+import {formatISO9075} from 'date-fns';
+import { v4 as uuidv4 } from 'uuid';
+import * as path from 'path';
 
-const DEFAULT_LIMIT = 100;
+const DEFAULT_IMAGES_FETCH_LIMIT = 100;
 
-type StoreImage = {
-    title: string,
-};
+const todayDate = formatISO9075(new Date(), { representation: 'date' });
+const STORAGE_IMG_DIR_PATH = 'storage/images'; // todo: env?
+const STORAGE_ABS_IMG_DIR_PATH = `${__dirname}/../../${STORAGE_IMG_DIR_PATH}/${todayDate}`;
 
 @Injectable()
 export class ImagesService {
@@ -17,47 +23,59 @@ export class ImagesService {
         private readonly imagesRepository: Repository<Image>) {
     }
 
-    async fetchByTitle(title: string, page = 1, limit = DEFAULT_LIMIT): Promise<ImageDto[]> {
+    async fetchByTitle(title?: string, page = 0, limit = DEFAULT_IMAGES_FETCH_LIMIT): Promise<ImageDto[]> {
+        let whereTitleLikeClause;
+        if (title) {
+            whereTitleLikeClause = {
+                where: {
+                    title: Like(`%${title}%`),
+                },
+            };
+        }
+
         const entities = await this.imagesRepository.find({
-            where: {
-                title,
-            },
+            ...whereTitleLikeClause,
             skip: page,
             take: limit,
         });
 
-        return entities.length > 0
-            ? entities.map(entity => ImageDto.fromEntity(entity))
-            : [];
+        return entities.map(entity => ImageDto.fromEntity(entity));
     }
 
-    async fetch(id: number): Promise<ImageDto | []> {
+    async fetch(id: number): Promise<ImageDto | undefined> {
         const entity = await this.imagesRepository.findOneBy({ id });
 
         return entity
             ? ImageDto.fromEntity(entity)
-            : []; // fixme
+            : undefined;
     }
 
-    // returns entity
-    async store({ title }: StoreImage, file: Express.Multer.File): Promise<ImageDto> {
-        // store to local
+    async store(dto: StoreImageDto, uploadedFile: Express.Multer.File): Promise<ImageDto> {
+        await fse.ensureDir(STORAGE_ABS_IMG_DIR_PATH);
 
-        const url = '';
-        const width = 50;
-        const height = 100;
+        const fileName = this.makeUuidFileName(uploadedFile);
+        const imageSavePath = `${STORAGE_ABS_IMG_DIR_PATH}/${fileName}`;
+
+        const processedImage = await sharp(uploadedFile.buffer);
+        if (dto.imageShouldBeResized()) {
+            await processedImage.resize(dto.width, dto.height);
+        }
+
+        const metadata = await processedImage.toFile(imageSavePath);
 
         const entity = await this.imagesRepository.save(
             this.imagesRepository.create({
-                url,
-                title,
-                width,
-                height,
+                url: `${STORAGE_IMG_DIR_PATH}/${fileName}`,
+                title: dto.title,
+                width: metadata.width,
+                height: metadata.height,
             }),
         );
 
         return ImageDto.fromEntity(entity);
+    }
 
-        // todo: should we remove uploaded file from local if DB failed to save?
+    private makeUuidFileName(file: Express.Multer.File): string {
+        return `${uuidv4()}${path.extname(file.originalname)}`;
     }
 }

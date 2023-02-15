@@ -18,11 +18,11 @@ export class ImageDto {
 
     @ApiProperty()
     @IsNumber()
-    readonly width: number;
+    readonly width?: number;
 
     @ApiProperty()
     @IsNumber()
-    readonly height: number;
+    readonly height?: number;
 
     @ApiProperty()
     @IsString()
@@ -32,7 +32,15 @@ export class ImageDto {
     @IsString()
     readonly updatedAt: string;
 
-    private constructor(id: number, url: string, title: string, width: number, height: number, createdAt: string, updatedAt: string) {
+    private constructor(
+        id: number,
+        url: string,
+        title: string,
+        width: number | undefined,
+        height: number | undefined,
+        createdAt: string,
+        updatedAt: string)
+    {
         this.id = id;
         this.url = url;
         this.title = title;
