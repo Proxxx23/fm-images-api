@@ -6,7 +6,7 @@ const MAX_LIMIT = 200;
 
 export class ImagesQueryDto {
     @IsString()
-    @MinLength(1)
+    @MinLength(4)
     @IsOptional()
     @ApiPropertyOptional()
     readonly title?: string;

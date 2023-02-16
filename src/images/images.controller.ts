@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     Body,
     Controller, FileTypeValidator,
     Get,
@@ -15,10 +16,10 @@ import {
 } from '@nestjs/common';
 import {ImagesService} from './images.service';
 import {ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags} from '@nestjs/swagger';
-import {StoreImageDto} from './dto/store-image.dto';
+import {StoreImageDto} from './dto/request/store-image.dto';
 import {FileInterceptor} from '@nestjs/platform-express';
-import {ImageDto} from './dto/image.dto';
-import {ImagesQueryDto} from './dto/images.query.dto';
+import {ImageDto} from './dto/response/image.dto';
+import {ImagesQueryDto} from './dto/request/images.query.dto';
 import {ApiImplicitFile} from '@nestjs/swagger/dist/decorators/api-implicit-file.decorator';
 
 const MAX_IMAGE_SIZE_KB = 5096 * 1024;
@@ -39,7 +40,7 @@ export class ImagesController {
         isArray: true,
         type: ImageDto,
     })
-    @ApiBadRequestResponse({ description: 'Title should be a string with more than 1 character.' })
+    @ApiBadRequestResponse({ description: 'Invalid filtering data provided (e.g. negative page)' })
     @HttpCode(HttpStatus.OK)
     async index(@Query() query: ImagesQueryDto): Promise<Response<ImageDto[]>> {
         return {
@@ -71,7 +72,7 @@ export class ImagesController {
     @ApiOperation({ summary: 'Upload and store image data' })
     @ApiImplicitFile({ name: 'image', required: true, description: 'Uploaded image' })
     @ApiOkResponse({ type: ImageDto })
-    @ApiInternalServerErrorResponse()
+    @ApiInternalServerErrorResponse({ description: 'Could not store image either in DB or on local disk.' })
     @HttpCode(HttpStatus.CREATED)
     @UseInterceptors(FileInterceptor('image'))
     async store(

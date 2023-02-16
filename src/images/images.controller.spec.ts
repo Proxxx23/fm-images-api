@@ -1,5 +1,5 @@
 import {Test, TestingModule} from '@nestjs/testing';
-import {HttpStatus, INestApplication} from '@nestjs/common';
+import {HttpStatus, INestApplication, ValidationPipe} from '@nestjs/common';
 import request from 'supertest';
 import {ImagesModule} from './images.module';
 import {getRepositoryToken, TypeOrmModule} from '@nestjs/typeorm';
@@ -16,7 +16,7 @@ const assertFileExists = async (filepath: string) => {
     }
 };
 
-describe('AppController', () => {
+describe('/images', () => {
     let app: INestApplication;
 
     let repository: Repository<Image>;
@@ -30,7 +30,7 @@ describe('AppController', () => {
                         type: 'sqlite',
                         database: 'db/images_test.sqlite',
                         logging: false,
-                        synchronize: true, // should not be used in prod env, used to migrate
+                        synchronize: true,
                         entities: [Image],
                     },
                 ),
@@ -38,15 +38,23 @@ describe('AppController', () => {
         }).compile();
 
         app = module.createNestApplication();
+
+        app.useGlobalPipes(
+            new ValidationPipe({
+                forbidUnknownValues: true,
+                transform: true,
+                whitelist: true,
+            }),
+        );
+
         await app.init();
 
         repository = module.get(getRepositoryToken(Image));
         await repository.clear();
     });
 
-    afterEach(async () => {
-        await repository.clear();
-    });
+    afterEach(async () => await repository.clear());
+    afterAll(async () => await app.close());
 
     describe('[GET] all images', () => {
         it('responds with an empty array if there are no images in database', () => {
@@ -58,28 +66,28 @@ describe('AppController', () => {
                 });
         });
 
-        it('responds 400 BAD RESPONSE on title query param provided but it is an empty string', () => {
+        it('responds with 400 BAD RESPONSE on title query param provided but it is an empty string', () => {
             return request(app.getHttpServer())
                 .get('/images')
                 .query({ title: '' })
                 .expect(HttpStatus.BAD_REQUEST);
         });
 
-        it('responds 400 BAD RESPONSE on page is negative number', () => {
+        it('responds with 400 BAD RESPONSE on page is negative number', () => {
             return request(app.getHttpServer())
                 .get('/images')
                 .query({ page: -1 })
                 .expect(HttpStatus.BAD_REQUEST);
         });
 
-        it.each([0, -1])('responds 400 BAD RESPONSE on limit is zero or negative number', (number) => {
+        it.each([0, -1])('responds with 400 BAD RESPONSE on limit is zero or negative number', (number) => {
             return request(app.getHttpServer())
                 .get('/images')
                 .query({ limit: number })
                 .expect(HttpStatus.BAD_REQUEST);
         });
 
-        it('responds with an array of images properly', () => {
+        it('responds with an array of images properly', async () => {
             const firstImage = {
                 url: 'anyurl',
                 title: 'Test title',
@@ -94,21 +102,26 @@ describe('AppController', () => {
                 height: 768,
             };
 
-            repository.save(repository.create(firstImage));
-            repository.save(repository.create(secondImage));
+            await repository.save(repository.create(firstImage));
+            await repository.save(repository.create(secondImage));
 
             return request(app.getHttpServer())
                 .get('/images')
                 .expect(HttpStatus.OK)
-                .expect({
-                    data: [
-                        firstImage,
-                        secondImage,
-                    ],
+                .expect((resp) => {
+                    expect(resp.body.data[0].url).toBe(firstImage.url);
+                    expect(resp.body.data[0].title).toBe(firstImage.title);
+                    expect(resp.body.data[0].width).toBe(firstImage.width);
+                    expect(resp.body.data[0].height).toBe(firstImage.height);
+
+                    expect(resp.body.data[1].url).toBe(secondImage.url);
+                    expect(resp.body.data[1].title).toBe(secondImage.title);
+                    expect(resp.body.data[1].width).toBe(secondImage.width);
+                    expect(resp.body.data[1].height).toBe(secondImage.height);
                 });
         });
 
-        it('responds with an array of images properly filtered by an existing title query param', () => {
+        it('responds with an array of images properly filtered by an existing title query param', async () => {
             const steinsImage = {
                 url: 'steins/url',
                 title: 'Steins Gate wallpaper',
@@ -123,21 +136,23 @@ describe('AppController', () => {
                 height: 768,
             };
 
-            repository.save(repository.create(steinsImage));
-            repository.save(repository.create(idInvadedImage));
+            await repository.save(repository.create(steinsImage));
+            await repository.save(repository.create(idInvadedImage));
 
             return request(app.getHttpServer())
                 .get('/images')
                 .query({ title: 'Steins' })
                 .expect(HttpStatus.OK)
-                .expect({
-                    data: [
-                        steinsImage,
-                    ],
+                .expect((resp) => {
+                    expect(resp.body.data).toHaveLength(1);
+                    expect(resp.body.data[0].url).toBe(steinsImage.url);
+                    expect(resp.body.data[0].title).toBe(steinsImage.title);
+                    expect(resp.body.data[0].width).toBe(steinsImage.width);
+                    expect(resp.body.data[0].height).toBe(steinsImage.height);
                 });
         });
 
-        it('responds with an empty array if filtered by a non existing title', () => {
+        it('responds with an empty array if filtered by a non existing title', async () => {
             const steinsImage = {
                 url: 'steins/url',
                 title: 'Steins Gate wallpaper',
@@ -152,8 +167,8 @@ describe('AppController', () => {
                 height: 768,
             };
 
-            repository.save(repository.create(steinsImage));
-            repository.save(repository.create(idInvadedImage));
+            await repository.save(repository.create(steinsImage));
+            await repository.save(repository.create(idInvadedImage));
 
             return request(app.getHttpServer())
                 .get('/images')
@@ -166,7 +181,7 @@ describe('AppController', () => {
     });
 
     describe('[GET]/:id', () => {
-        it('responds with 404 NOT_FOUND if image with given id does not exist', () => {
+        it('responds with 404 NOT FOUND if image with given id does not exist', () => {
             return request(app.getHttpServer())
                 .get('/images/1991453')
                 .expect(HttpStatus.NOT_FOUND);
@@ -185,11 +200,11 @@ describe('AppController', () => {
             return request(app.getHttpServer())
                 .get('/images/' + savedEntity.id)
                 .expect(HttpStatus.OK)
-                .expect({ // fixme
-                    data: {
-                        id: savedEntity.id,
-                        ...savedEntity,
-                    },
+                .expect((resp) => {
+                    expect(resp.body.data.url).toBe(savedEntity.url);
+                    expect(resp.body.data.title).toBe(savedEntity.title);
+                    expect(resp.body.data.width).toBe(savedEntity.width);
+                    expect(resp.body.data.height).toBe(savedEntity.height);
                 });
         });
     });
@@ -201,7 +216,7 @@ describe('AppController', () => {
                 .set('Content-Type', 'multipart/form-data')
                 .field('title', '')
                 .attach('image', Buffer.alloc(1024 * 1024), 'dummy.jpeg')
-                .expect((res) => expect(res.body.message).toBe('title should not be empty'))
+                .expect((res) => expect(res.body.message[0]).toBe('title should not be empty'))
                 .expect(HttpStatus.BAD_REQUEST);
         });
 
@@ -225,7 +240,7 @@ describe('AppController', () => {
                 .expect(HttpStatus.BAD_REQUEST);
         });
 
-        it.skip('responds with 400 BAD REQUEST if width is zero', () => {
+        it('responds with 400 BAD REQUEST if width is zero', () => {
             return request(app.getHttpServer())
                 .post('/images')
                 .set('Content-Type', 'multipart/form-data')
@@ -234,33 +249,33 @@ describe('AppController', () => {
                     width: 0,
                 })
                 .attach('image', `${__dirname}/../../fixtures/test_file_upload.jpg`)
-                .expect((res) => expect(res.body.message).toBe('width must not be less than 1'))
+                .expect((res) => expect(res.body.message[0]).toBe('width must not be less than 1'))
                 .expect(HttpStatus.BAD_REQUEST);
         });
 
-        it.skip('responds with 400 BAD REQUEST if width is greater than 10000', () => {
+        it('responds with 400 BAD REQUEST if width is greater than 10000', () => {
             return request(app.getHttpServer())
                 .post('/images')
                 .set('Content-Type', 'multipart/form-data')
                 .field('title', 'Any title')
                 .field('width', 9999999)
                 .attach('image', `${__dirname}/../../fixtures/test_file_upload.jpg`)
-                .expect((res) => expect(res.body.message).toBe('width must not be greater than 10000'))
+                .expect((res) => expect(res.body.message[0]).toBe('width must not be greater than 10000'))
                 .expect(HttpStatus.BAD_REQUEST);
         });
 
-        it.skip('responds with 400 BAD REQUEST if height is zero', () => {
+        it('responds with 400 BAD REQUEST if height is zero', () => {
             return request(app.getHttpServer())
                 .post('/images')
                 .set('Content-Type', 'multipart/form-data')
                 .field('title', 'Any title')
                 .field('height', 0)
                 .attach('image', `${__dirname}/../../fixtures/test_file_upload.jpg`)
-                .expect((res) => expect(res.body.message).toBe('height must not be less than 1'))
+                .expect((res) => expect(res.body.message[0]).toBe('height must not be less than 1'))
                 .expect(HttpStatus.BAD_REQUEST);
         });
 
-        it.skip('responds with 400 BAD REQUEST if height is greater than 10000', () => {
+        it('responds with 400 BAD REQUEST if height is greater than 10000', () => {
             return request(app.getHttpServer())
                 .post('/images')
                 .set('Content-Type', 'multipart/form-data')
@@ -269,7 +284,7 @@ describe('AppController', () => {
                     height: 999999,
                 })
                 .attach('image', `${__dirname}/../../fixtures/test_file_upload.jpg`)
-                .expect((res) => expect(res.body.message).toBe('height must not be greater than 10000'))
+                .expect((res) => expect(res.body.message[0]).toBe('height must not be greater than 10000'))
                 .expect(HttpStatus.BAD_REQUEST);
         });
 

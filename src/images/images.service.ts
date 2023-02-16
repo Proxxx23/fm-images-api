@@ -2,8 +2,8 @@ import {Injectable} from '@nestjs/common';
 import {Like, Repository} from 'typeorm';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Image} from './entity/image';
-import {ImageDto} from './dto/image.dto';
-import {StoreImageDto} from './dto/store-image.dto';
+import {ImageDto} from './dto/response/image.dto';
+import {StoreImageDto} from './dto/request/store-image.dto';
 import sharp from 'sharp';
 import fse from 'fs-extra';
 import {formatISO9075} from 'date-fns';
@@ -57,8 +57,7 @@ export class ImagesService {
         const imageSavePath = `${STORAGE_ABS_IMG_DIR_PATH}/${fileName}`;
 
         const processedImage = await sharp(uploadedFile.buffer);
-        // fixme: supertest sets these values as strings...
-        if (+dto.width > 0 && +dto.height > 0) {
+        if (dto.imageShouldBeResized()) {
             await processedImage.resize(+dto.width, +dto.height);
         }
 

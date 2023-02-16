@@ -25,15 +25,7 @@ export class StoreImageDto {
     @Max(10000)
     readonly height?: number;
 
-    constructor(title: string, width?: number, height?: number) {
-        this.title = title; // fixme: needed?
-        this.width = width;
-        this.height = height;
+    public imageShouldBeResized(): boolean {
+        return this.width > 0 && this.height > 0;
     }
-
-    // fixme: this causes error in tests as it's not visible on test execution context
-    // fixme: results in "TypeError: dto.imageShouldBeResized is not a function" error on test running
-    // public imageShouldBeResized(): boolean {
-    //     return this.width > 0 && this.height > 0;
-    // }
 }

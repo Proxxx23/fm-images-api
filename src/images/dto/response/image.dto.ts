@@ -1,8 +1,7 @@
-import {ApiExtraModels, ApiProperty} from '@nestjs/swagger';
-import {Image} from '../entity/image';
+import {ApiProperty} from '@nestjs/swagger';
+import {Image} from '../../entity/image';
 import {IsNumber, IsString} from 'class-validator';
 
-@ApiExtraModels(Image)
 export class ImageDto {
     @ApiProperty()
     @IsNumber()
@@ -18,11 +17,11 @@ export class ImageDto {
 
     @ApiProperty()
     @IsNumber()
-    readonly width?: number;
+    readonly width: number | undefined;
 
     @ApiProperty()
     @IsNumber()
-    readonly height?: number;
+    readonly height: number | undefined;
 
     @ApiProperty()
     @IsString()
@@ -39,8 +38,7 @@ export class ImageDto {
         width: number | undefined,
         height: number | undefined,
         createdAt: string,
-        updatedAt: string)
-    {
+        updatedAt: string) {
         this.id = id;
         this.url = url;
         this.title = title;
