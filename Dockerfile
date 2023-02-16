@@ -4,5 +4,4 @@ COPY --chown=node package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
-ENV NODE_ENV 'production'
-CMD npm run test && npm run start:prod
+CMD npm run start:prod

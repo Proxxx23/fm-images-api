@@ -1,4 +1,4 @@
-import {IsNumber, IsOptional, IsPositive, IsString, Max, Min, MinLength} from 'class-validator';
+import {IsNumber, IsOptional, IsString, Max, Min, MinLength} from 'class-validator';
 import {ApiPropertyOptional} from '@nestjs/swagger';
 import {Type} from 'class-transformer';
 
@@ -6,12 +6,12 @@ const MAX_LIMIT = 200;
 
 export class ImagesQueryDto {
     @IsString()
-    @MinLength(4)
+    @MinLength(1)
     @IsOptional()
     @ApiPropertyOptional()
     readonly title?: string;
 
-    @IsPositive()
+    @IsNumber()
     @IsOptional()
     @Min(0)
     @Type(() => Number)

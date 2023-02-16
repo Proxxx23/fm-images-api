@@ -121,6 +121,68 @@ describe('/images', () => {
                 });
         });
 
+        it('responds with an array of images properly with page = 1 and limit = 1', async () => {
+            const steinsImage = {
+                url: 'steins/url',
+                title: 'Steins Gate wallpaper',
+                width: 800,
+                height: 600,
+            };
+
+            const idInvadedImage = {
+                url: 'invaded/url',
+                title: 'IdInvaded wallpaper',
+                width: 1024,
+                height: 768,
+            };
+
+            await repository.save(repository.create(steinsImage));
+            await repository.save(repository.create(idInvadedImage));
+
+            return request(app.getHttpServer())
+                .get('/images')
+                .query({ page: 1, limit: 1 })
+                .expect(HttpStatus.OK)
+                .expect((resp) => {
+                    expect(resp.body.data).toHaveLength(1);
+                    expect(resp.body.data[0].url).toBe(idInvadedImage.url);
+                    expect(resp.body.data[0].title).toBe(idInvadedImage.title);
+                    expect(resp.body.data[0].width).toBe(idInvadedImage.width);
+                    expect(resp.body.data[0].height).toBe(idInvadedImage.height);
+                });
+        });
+
+        it('responds with an array of images properly with limit 1', async () => {
+            const steinsImage = {
+                url: 'steins/url',
+                title: 'Steins Gate wallpaper',
+                width: 800,
+                height: 600,
+            };
+
+            const idInvadedImage = {
+                url: 'invaded/url',
+                title: 'IdInvaded wallpaper',
+                width: 1024,
+                height: 768,
+            };
+
+            await repository.save(repository.create(steinsImage));
+            await repository.save(repository.create(idInvadedImage));
+
+            return request(app.getHttpServer())
+                .get('/images')
+                .query({ limit: 1 })
+                .expect(HttpStatus.OK)
+                .expect((resp) => {
+                    expect(resp.body.data).toHaveLength(1);
+                    expect(resp.body.data[0].url).toBe(steinsImage.url);
+                    expect(resp.body.data[0].title).toBe(steinsImage.title);
+                    expect(resp.body.data[0].width).toBe(steinsImage.width);
+                    expect(resp.body.data[0].height).toBe(steinsImage.height);
+                });
+        });
+
         it('responds with an array of images properly filtered by an existing title query param', async () => {
             const steinsImage = {
                 url: 'steins/url',
